@@ -12,12 +12,12 @@ I’m a dual-major student in **Cloud Management** and **Computer Programming** 
 I’m passionate about learning how technology can solve real-world problems while building strong foundations in programming and cloud services.
 
 ## Currently Learning
-- CSC-113: AI Fundamentals  
+- AI Fundamentals  
 - Java programming projects  
 - AWS services and database design  
 
 ## My "Foo"
-When I’m not coding, I’m a **pool-care enthusiast** 🏊 who enjoys balancing water chemistry and helping family and friends maintain their pools.
+When I’m not coding, I’m a **pool-care enthusiast** 🏊 who enjoys balancing water chemistry and helping family and friends.
 
 ## How to Reach Me
 - GitHub: [ackermaj5301](https://github.com/ackermaj5301)
