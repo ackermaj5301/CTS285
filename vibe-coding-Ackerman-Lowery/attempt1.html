@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Guessing Game — Attempt 1</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
+    .card { max-width: 600px; border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
+    h1 { margin-top: 0; }
+    .row { display: flex; gap: .5rem; margin: .75rem 0; }
+    input[type="number"] { padding: .5rem; font-size: 1rem; width: 120px; }
+    button { padding: .55rem .9rem; font-size: 1rem; cursor: pointer; }
+    #feedback { margin-top: .5rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Number Guessing Game</h1>
+    <p>I picked a number from <strong>1 to 100</strong>. Can you guess it?</p>
+
+    <div class="row">
+      <input id="guess" type="number" min="1" max="100" placeholder="1-100" />
+      <button id="guessBtn">Guess</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <div id="feedback">Make a guess to begin.</div>
+    <div id="attempts">Attempts: 0</div>
+  </div>
+
+  <script>
+    let secret = Math.floor(Math.random() * 100) + 1;
+    let attempts = 0;
+
+    const guessInput = document.getElementById('guess');
+    const guessBtn   = document.getElementById('guessBtn');
+    const resetBtn   = document.getElementById('resetBtn');
+    const feedback   = document.getElementById('feedback');
+    const attemptsEl = document.getElementById('attempts');
+
+    function updateAttempts() {
+      attemptsEl.textContent = 'Attempts: ' + attempts;
+    }
+
+    function handleGuess() {
+      const val = Number(guessInput.value);
+      attempts++;
+      updateAttempts();
+
+      if (val === secret) {
+        feedback.textContent = '🎉 Correct! ' + val + ' was the number.';
+        guessBtn.disabled = true;
+      } else if (val < secret) {
+        feedback.textContent = 'Too low. Try a higher number.';
+      } else {
+        feedback.textContent = 'Too high. Try a lower number.';
+      }
+      guessInput.focus();
+      guessInput.select();
+    }
+
+    function resetGame() {
+      secret = Math.floor(Math.random() * 100) + 1;
+      attempts = 0;
+      updateAttempts();
+      guessInput.value = '';
+      guessBtn.disabled = false;
+      feedback.textContent = 'New game started. Make a guess!';
+      guessInput.focus();
+    }
+
+    guessBtn.addEventListener('click', handleGuess);
+    resetBtn.addEventListener('click', resetGame);
+    guessInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleGuess();
+    });
+  </script>
+</body>
+</html>

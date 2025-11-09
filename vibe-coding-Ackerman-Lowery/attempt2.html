@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Guessing Game — Attempt 2</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #131a33;
+      --acc: #4da3ff;
+      --text: #e9eef7;
+      --muted: #b7c6e0;
+      --danger: #ff5d5d;
+      --ok: #3ddc97;
+    }
+    body { font-family: system-ui, Arial, sans-serif; margin: 2rem; background: var(--bg); color: var(--text); }
+    .card { max-width: 700px; background: var(--card); padding: 1.25rem; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+    h1 { margin-top: 0; letter-spacing: .3px; }
+    .row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+    input[type="number"] { padding: .6rem .7rem; font-size: 1rem; width: 140px; border-radius: 10px; border: 1px solid #2a355f; background: #0f1530; color: var(--text); }
+    button { padding: .6rem .95rem; font-size: 1rem; cursor: pointer; border: 0; border-radius: 10px; background: var(--acc); color: #041024; font-weight: 700; }
+    button.secondary { background: #2c386b; color: var(--text); }
+    #feedback { margin-top: .5rem; font-weight: 700; }
+    #feedback.bad { color: var(--danger); }
+    #feedback.good { color: var(--ok); }
+    .meta { color: var(--muted); font-size: .95rem; margin-top: .25rem; }
+    ul { margin-top: .5rem; }
+    .pill { display:inline-block; padding:.3rem .55rem; border-radius:999px; background:#1b254d; margin-right:.35rem; margin-bottom:.35rem; font-size:.9rem; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Number Guessing Game</h1>
+    <p>I'm thinking of a number from <strong>1 to 100</strong>. Guess it! I'll tell you if you need to go higher or lower.</p>
+
+    <div class="row">
+      <input id="guess" type="number" min="1" max="100" placeholder="1-100" />
+      <button id="guessBtn">Guess</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+
+    <div id="feedback" class=""></div>
+    <div class="meta" id="attempts">Attempts: 0</div>
+
+    <div class="grid">
+      <div>
+        <h3>Guess History</h3>
+        <div id="history"></div>
+      </div>
+      <div>
+        <h3>Stats</h3>
+        <div class="meta">Games Played: <span id="gamesPlayed">0</span></div>
+        <div class="meta">Best (fewest attempts): <span id="bestScore">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    let secret = rand100();
+    let attempts = 0;
+    let finished = false;
+    const state = {
+      gamesPlayed: Number(localStorage.getItem('vc_gamesPlayed') || 0),
+      best: Number(localStorage.getItem('vc_best') || 0) || null
+    };
+
+    const guessInput = $('guess');
+    const guessBtn   = $('guessBtn');
+    const resetBtn   = $('resetBtn');
+    const feedback   = $('feedback');
+    const attemptsEl = $('attempts');
+    const historyEl  = $('history');
+    const gamesPlayedEl = $('gamesPlayed');
+    const bestScoreEl   = $('bestScore');
+
+    updateStats();
+    updateAttempts();
+    feedback.textContent = "Make a guess to begin.";
+
+    function rand100(){ return Math.floor(Math.random()*100)+1; }
+
+    function updateAttempts(){ attemptsEl.textContent = 'Attempts: ' + attempts; }
+
+    function updateStats(){
+      gamesPlayedEl.textContent = state.gamesPlayed;
+      bestScoreEl.textContent = (state.best == null) ? '—' : state.best + ' attempt' + (state.best===1?'':'s');
+    }
+
+    function pushHistory(value, hint) {
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = value + ' (' + hint + ')';
+      historyEl.prepend(pill);
+    }
+
+    function setFeedback(msg, good=false) {
+      feedback.className = good ? 'good' : 'bad';
+      feedback.textContent = msg;
+    }
+
+    function finishGame() {
+      finished = true;
+      guessBtn.disabled = true;
+      state.gamesPlayed++;
+      localStorage.setItem('vc_gamesPlayed', state.gamesPlayed);
+      if (state.best == null || attempts < state.best) {
+        state.best = attempts;
+        localStorage.setItem('vc_best', state.best);
+      }
+      updateStats();
+    }
+
+    function handleGuess() {
+      if (finished) return;
+      const raw = guessInput.value.trim();
+      const val = Number(raw);
+
+      if (!raw) { setFeedback('Please enter a number between 1 and 100.'); return; }
+      if (!Number.isInteger(val) || val < 1 || val > 100) {
+        setFeedback('Out of range. Enter a whole number from 1 to 100.');
+        return;
+      }
+
+      attempts++;
+      updateAttempts();
+
+      if (val === secret) {
+        setFeedback('🎉 Correct! ' + val + ' was the number. You took ' + attempts + ' attempts.', true);
+        pushHistory(val, '✔');
+        finishGame();
+      } else if (val < secret) {
+        setFeedback('Too low. Try a higher number.');
+        pushHistory(val, '↑');
+      } else {
+        setFeedback('Too high. Try a lower number.');
+        pushHistory(val, '↓');
+      }
+
+      guessInput.focus();
+      guessInput.select();
+    }
+
+    function resetGame() {
+      secret = rand100();
+      attempts = 0;
+      finished = false;
+      guessBtn.disabled = false;
+      historyEl.innerHTML = '';
+      updateAttempts();
+      setFeedback('New game started. Make a guess!');
+      guessInput.value = '';
+      guessInput.focus();
+    }
+
+    guessBtn.addEventListener('click', handleGuess);
+    resetBtn.addEventListener('click', resetGame);
+    guessInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGuess(); });
+  </script>
+</body>
+</html>

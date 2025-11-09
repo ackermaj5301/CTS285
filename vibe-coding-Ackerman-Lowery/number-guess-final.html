@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Guessing Game — Final</title>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: #10182b;
+      --muted: #9db0d0;
+      --accent: #7aa2ff;
+      --accent-2: #9effcf;
+      --text: #eef3fb;
+      --error: #ff7a7a;
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(1200px 800px at 20% 0%, #0c1224, #070b15 70%); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    main { max-width: 920px; margin: 40px auto; padding: 0 16px; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 18px; }
+    .title { font-size: clamp(1.4rem, 3vw, 2rem); margin: 0; letter-spacing: .3px; }
+    .badge { font-size: .85rem; color: #07122a; background: linear-gradient(90deg, var(--accent), var(--accent-2)); padding: .35rem .6rem; border-radius: 999px; font-weight: 700; }
+    .panel { background: linear-gradient(180deg, #121b30, #0e1627); border: 1px solid rgba(255,255,255,.06); padding: 18px; border-radius: 16px; box-shadow: var(--shadow); }
+    .grid { display:grid; grid-template-columns: 1.4fr .9fr; gap: 16px; }
+    @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+    .controls { display:flex; flex-wrap:wrap; gap: 8px; align-items: center; }
+    input[type="number"] { background: #0c1325; border: 1px solid #1f2a46; color: var(--text); border-radius: 12px; padding: .7rem .8rem; width: 140px; font-size: 1rem; }
+    button { appearance: none; border: 0; padding: .7rem 1rem; border-radius: 12px; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: var(--accent); color: #07122a; }
+    .btn-secondary { background: #203055; color: var(--text); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid #26365f; }
+    .stack { display:flex; flex-direction: column; gap: 8px; }
+    .muted { color: var(--muted); }
+    .kpis { display:flex; gap: 10px; flex-wrap: wrap; }
+    .kpi { background:#0c1325; border:1px solid #1f2a46; padding: .6rem .8rem; border-radius: 12px; }
+    #feedback { font-weight: 800; min-height: 1.6em; }
+    .good { color: var(--accent-2); }
+    .bad { color: var(--error); }
+    .history { display:flex; gap: 6px; flex-wrap: wrap; }
+    .pill { background:#0c1325; border:1px solid #1f2a46; padding: .35rem .55rem; border-radius: 999px; font-size: .95rem; }
+    details { background:#0c1325; border:1px solid #1f2a46; padding:.6rem .8rem; border-radius:12px; }
+    summary { cursor:pointer; font-weight:700; }
+    footer { margin-top: 18px; color: var(--muted); font-size: .92rem; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="header">
+    <h1 class="title" aria-live="polite">Number Guessing Game</h1>
+    <span class="badge" title="Stores stats in your browser">Local Score Tracking</span>
+  </div>
+
+  <section class="panel grid" aria-labelledby="game-title">
+    <div class="stack" role="group" aria-label="Game controls">
+      <p class="muted" id="instructions">
+        I'm thinking of a number from <strong>1 to 100</strong>. Type a guess and press Enter (or click Guess). I'll say whether to go higher or lower.
+      </p>
+      <div class="controls">
+        <label for="guess" class="sr-only">Enter your guess (1-100)</label>
+        <input id="guess" type="number" inputmode="numeric" min="1" max="100" placeholder="1-100" aria-describedby="instructions feedback" aria-label="Your guess (1 to 100)" />
+        <button id="guessBtn" class="btn-primary">Guess</button>
+        <button id="resetBtn" class="btn-secondary">Reset</button>
+        <button id="howBtn" class="btn-ghost">How to Play</button>
+      </div>
+
+      <div id="feedback" class="bad" role="status" aria-live="polite">Make a guess to begin.</div>
+      <div class="kpis" aria-live="polite">
+        <div class="kpi">Attempts: <strong id="attempts">0</strong></div>
+        <div class="kpi">Games: <strong id="gamesPlayed">0</strong></div>
+        <div class="kpi">Best (fewest): <strong id="bestScore">—</strong></div>
+      </div>
+
+      <div>
+        <h3>Guess History</h3>
+        <div id="history" class="history" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <aside class="stack" aria-label="Help panel">
+      <h3>Tips</h3>
+      <ul class="muted">
+        <li>Start by guessing 50. Then go higher/lower by half each time (binary search strategy).</li>
+        <li>Use the Reset button to start a fresh game.</li>
+        <li>Your best score is saved in this browser.</li>
+      </ul>
+
+      <details>
+        <summary>What counts as a valid guess?</summary>
+        <p class="muted">A whole number between 1 and 100. Decimals or text aren’t valid.</p>
+      </details>
+      <details>
+        <summary>Keyboard shortcuts</summary>
+        <p class="muted"><strong>Enter</strong>: submit guess &nbsp;•&nbsp; <strong>R</strong>: reset game</p>
+      </details>
+    </aside>
+  </section>
+
+  <footer>© 2025 Vibe Coding — Number Guessing Game</footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // State
+  let secret = rand100();
+  let attempts = 0;
+  let finished = false;
+  const state = {
+    gamesPlayed: Number(localStorage.getItem('vc_gamesPlayed') || 0),
+    best: Number(localStorage.getItem('vc_best') || 0) || null
+  };
+
+  // Elements
+  const guessInput = $('guess');
+  const guessBtn   = $('guessBtn');
+  const resetBtn   = $('resetBtn');
+  const howBtn     = $('howBtn');
+  const feedback   = $('feedback');
+  const attemptsEl = $('attempts');
+  const historyEl  = $('history');
+  const gamesPlayedEl = $('gamesPlayed');
+  const bestScoreEl   = $('bestScore');
+
+  // Init
+  updateStats();
+  updateAttempts();
+  setFeedback('Make a guess to begin.');
+
+  function rand100(){ return Math.floor(Math.random()*100)+1; }
+
+  function updateAttempts(){ attemptsEl.textContent = attempts; }
+
+  function updateStats(){
+    gamesPlayedEl.textContent = state.gamesPlayed;
+    bestScoreEl.textContent = (state.best == null) ? '—' : state.best + ' attempt' + (state.best===1?'':'s');
+  }
+
+  function pushHistory(value, hint) {
+    const pill = document.createElement('span');
+    pill.className = 'pill';
+    pill.textContent = value + ' ' + hint;
+    historyEl.prepend(pill);
+  }
+
+  function setFeedback(msg, good=false) {
+    feedback.className = good ? 'good' : 'bad';
+    feedback.textContent = msg;
+  }
+
+  function finishGame() {
+    finished = true;
+    guessBtn.disabled = true;
+    state.gamesPlayed++;
+    localStorage.setItem('vc_gamesPlayed', state.gamesPlayed);
+    if (state.best == null || attempts < state.best) {
+      state.best = attempts;
+      localStorage.setItem('vc_best', state.best);
+    }
+    updateStats();
+  }
+
+  function handleGuess() {
+    if (finished) return;
+    const raw = guessInput.value.trim();
+    const val = Number(raw);
+
+    if (!raw) { setFeedback('Please enter a number between 1 and 100.'); return; }
+    if (!Number.isInteger(val) || val < 1 || val > 100) {
+      setFeedback('Out of range. Enter a whole number from 1 to 100.');
+      return;
+    }
+
+    attempts++;
+    updateAttempts();
+
+    if (val === secret) {
+      setFeedback('🎉 Correct! ' + val + ' was the number. You took ' + attempts + ' attempt' + (attempts===1?'':'s') + '.', true);
+      pushHistory(val, '✔');
+      finishGame();
+    } else if (val < secret) {
+      setFeedback('Too low. Try a higher number.');
+      pushHistory(val, '↑');
+    } else {
+      setFeedback('Too high. Try a lower number.');
+      pushHistory(val, '↓');
+    }
+
+    guessInput.focus();
+    guessInput.select();
+  }
+
+  function resetGame() {
+    secret = rand100();
+    attempts = 0;
+    finished = false;
+    guessBtn.disabled = false;
+    historyEl.innerHTML = '';
+    updateAttempts();
+    setFeedback('New game started. Make a guess!');
+    guessInput.value = '';
+    guessInput.focus();
+  }
+
+  // Events
+  guessBtn.addEventListener('click', handleGuess);
+  resetBtn.addEventListener('click', resetGame);
+  howBtn.addEventListener('click', () => {
+    alert('How to play:\n\nI chose a number between 1 and 100. Enter a guess and I\'ll tell you if you need to go higher or lower. Try to find it in as few attempts as possible!');
+  });
+  guessInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGuess(); });
+  window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'r') resetGame(); });
+</script>
+</body>
+</html>
