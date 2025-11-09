@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Guessing Game — React SPA (CDN)</title>
+  <!-- React via CDN (no build tools needed) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0e1324; color:#e9eef7; }
+    #root { max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    .card { background:#101834; border:1px solid #263a7a; padding: 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+    input { background:#0b1228; border:1px solid #253867; color:#e9eef7; border-radius:10px; padding:.6rem .8rem; width:140px; }
+    button { border:0; padding:.6rem .9rem; border-radius:10px; background:#7aa2ff; color:#06122a; font-weight:700; cursor:pointer; }
+    button.secondary { background:#253867; color:#e9eef7; }
+    .pill { display:inline-block; background:#0b1228; border:1px solid #253867; border-radius:999px; padding:.35rem .55rem; margin-right:6px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/javascript">
+    const { useState, useEffect, useRef } = React;
+
+    function rand100(){ return Math.floor(Math.random()*100)+1; }
+
+    function App(){
+      const [secret, setSecret] = useState(rand100());
+      const [attempts, setAttempts] = useState(0);
+      const [finished, setFinished] = useState(false);
+      const [feedback, setFeedback] = useState('Make a guess to begin.');
+      const [history, setHistory] = useState([]);
+      const [value, setValue] = useState('');
+      const [games, setGames] = useState(() => Number(localStorage.getItem('vc_gamesPlayed')||0));
+      const [best, setBest] = useState(() => Number(localStorage.getItem('vc_best')||0) || null);
+      const inputRef = useRef(null);
+
+      useEffect(()=>{ inputRef.current?.focus(); }, []);
+
+      function onGuess(){
+        if (finished) return;
+        const raw = value.trim();
+        const val = Number(raw);
+        if (!raw) { setFeedback('Please enter a number between 1 and 100.'); return; }
+        if (!Number.isInteger(val) || val < 1 || val > 100) { setFeedback('Out of range. Enter a whole number from 1 to 100.'); return; }
+
+        setAttempts(a => a+1);
+        if (val === secret){
+          setFeedback('🎉 Correct! ' + val + ' was the number.');
+          setHistory(h => [{v: val, hint: '✔'}, ...h]);
+          setFinished(true);
+          const g = games + 1; setGames(g); localStorage.setItem('vc_gamesPlayed', g);
+          const newBest = best == null || (attempts+1) < best ? attempts+1 : best;
+          if (newBest !== best){
+            setBest(newBest);
+            localStorage.setItem('vc_best', newBest);
+          }
+        } else if (val < secret) {
+          setFeedback('Too low. Try a higher number.');
+          setHistory(h => [{v: val, hint: '↑'}, ...h]);
+        } else {
+          setFeedback('Too high. Try a lower number.');
+          setHistory(h => [{v: val, hint: '↓'}, ...h]);
+        }
+        setValue(String(val));
+        inputRef.current?.select();
+      }
+
+      function onReset(){
+        setSecret(rand100());
+        setAttempts(0);
+        setFinished(false);
+        setFeedback('New game started. Make a guess!');
+        setHistory([]);
+        setValue('');
+        inputRef.current?.focus();
+      }
+
+      return (
+        React.createElement('div', {className:'card'},
+          React.createElement('h1', null, 'Number Guessing Game — React SPA'),
+          React.createElement('p', null, 'Pick a number from ', React.createElement('strong', null, '1–100'), '. I\'ll tell you higher/lower.'),
+          React.createElement('div', null,
+            React.createElement('input', {
+              ref: inputRef,
+              type:'number', min:1, max:100, placeholder:'1-100',
+              value: value, onChange: e => setValue(e.target.value),
+              onKeyDown: e => { if (e.key === 'Enter') onGuess(); }
+            }),
+            ' ',
+            React.createElement('button', {onClick: onGuess}, 'Guess'),
+            ' ',
+            React.createElement('button', {onClick: onReset, className:'secondary'}, 'Reset')
+          ),
+          React.createElement('div', {style:{fontWeight:800, marginTop:8}}, feedback),
+          React.createElement('div', {style:{marginTop:6}}, 'Attempts: ', attempts, ' • Games: ', games, ' • Best: ', best==null?'—':best),
+          React.createElement('h3', {style:{marginTop:12}}, 'Guess History'),
+          React.createElement('div', null,
+            history.map((h, i) =>
+              React.createElement('span', {key:i, className:'pill'}, h.v + ' ' + h.hint)
+            )
+          ),
+          React.createElement('p', {style:{opacity:.7, marginTop:12}}, 'This version uses React (SPA) with state and components. It\'s more complex than the plain HTML+JS version but scales better for bigger apps.')
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
